@@ -21,6 +21,10 @@
 
 #include "wifi_info.h"
 #include <Arduino.h>
+
+#include <Adafruit_BMP280.h>
+#include <SPI.h>
+#include <Wire.h>
 #include <arduino_homekit_server.h>
 
 #include <Adafruit_Sensor.h>
@@ -55,22 +59,34 @@ extern "C" homekit_server_config_t config;
 
 static uint32_t next_report_millis = 0;
 
+Adafruit_BMP280 bmp;
+bool flag = false;
+
 // Called when the switch value is changed by iOS Home APP
 void my_homekit_report() {
   // Get temperature event and print its value.
   sensors_event_t event;
 
   dht.temperature().getEvent(&event);
+
   if (isnan(event.temperature)) {
     Serial.println(F("Error reading temperature!"));
   } else {
-    Serial.print(F("Temperature: "));
-    Serial.print(event.temperature);
-    Serial.println(F("°C"));
     temperature.value.float_value = event.temperature;
-
-    homekit_characteristic_notify(&temperature, temperature.value);
   }
+
+  if (flag) {
+    Serial.println("bmp value");
+    temperature.value.float_value = bmp.readTemperature();
+  }
+
+  flag = !flag;
+
+  Serial.print(F("Temperature: "));
+  Serial.print(temperature.value.float_value);
+  Serial.println(F("°C"));
+
+  homekit_characteristic_notify(&temperature, temperature.value);
 
   // Get humidity event and print its value.
   dht.humidity().getEvent(&event);
@@ -133,6 +149,22 @@ void sensorSetup() {
   Serial.print(sensor.resolution);
   Serial.println(F("%"));
   Serial.println(F("------------------------------------"));
+
+  // if (!bmp.begin(BMP280_ADDRESS_ALT, BMP280_CHIPID)) {
+  if (!bmp.begin()) {
+    Serial.println(F("Could not find a valid BMP280 sensor, check wiring or "
+                     "try a different address!"));
+    while (1)
+      delay(10);
+  }
+
+  /* Default settings from datasheet. */
+  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
+                  Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+                  Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
+                  Adafruit_BMP280::FILTER_X16,      /* Filtering. */
+                  Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+
   // Set delay between sensor readings based on sensor details.
   delay(1000);
 }
@@ -150,8 +182,7 @@ void loop() {
   const uint32_t t = millis();
 
   if (t > next_report_millis) {
-    // report sensor values every 5 minutes
-    next_report_millis = t + 5 * 60 * 1000;
+    next_report_millis = t + 1 * 1000 * 30;
     my_homekit_report();
   }
 }

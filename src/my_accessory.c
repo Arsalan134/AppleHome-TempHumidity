@@ -39,8 +39,7 @@ homekit_accessory_t *accessories[] = {
                         ACCESSORY_INFORMATION,
                         .characteristics =
                             (homekit_characteristic_t *[]){
-                                HOMEKIT_CHARACTERISTIC(NAME,
-                                                       "Temperature Sensor"),
+                                HOMEKIT_CHARACTERISTIC(NAME, "Meteo Station"),
                                 HOMEKIT_CHARACTERISTIC(MANUFACTURER, "Arsalan"),
                                 HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "123456"),
                                 HOMEKIT_CHARACTERISTIC(MODEL,
